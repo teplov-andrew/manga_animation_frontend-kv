@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 
 export const maxDuration = 600 // 10 minutes
 
-// Update the POST function to ensure we're preserving color information
 export async function POST(request: Request) {
   try {
     // Get the form data from the request
@@ -27,15 +26,22 @@ export async function POST(request: Request) {
       )
     } else {
       console.log("No file found in form data")
+      return NextResponse.json(
+        {
+          error: "No file found in form data",
+          fallback: true,
+        },
+        { status: 200 },
+      )
     }
 
-    // Determine which API to use based on the effect
-    let apiUrl = "https://152f-213-159-64-202.ngrok-free.app/manual_zoom/"
+    // Determine which API to use based on the effect - THIS IS THE KEY FIX
+    let apiUrl = "https://dbdb-212-34-143-63.ngrok-free.app/manual_zoom/"
 
     if (effect === "reveal") {
-      apiUrl = "https://152f-213-159-64-202.ngrok-free.app/manual_reveal/"
+      apiUrl = "https://dbdb-212-34-143-63.ngrok-free.app/manual_reveal/"
     } else if (effect === "shake") {
-      apiUrl = "https://152f-213-159-64-202.ngrok-free.app/manual_shake/"
+      apiUrl = "https://dbdb-212-34-143-63.ngrok-free.app/manual_shake/"
     }
 
     console.log(`Proxying manual animation request to ${apiUrl} for effect: ${effect}`)
@@ -45,12 +51,16 @@ export async function POST(request: Request) {
       const newFormData = new FormData()
 
       // If we have a file, ensure it's sent with the correct content type
-      if (file instanceof File) {
+      if (file instanceof File || file instanceof Blob) {
         // Explicitly set the content type to image/png to preserve color information
         newFormData.append("file", file, "colorized_panel.png")
+
+        // Log the file details for debugging
+        console.log("Sending file with size:", file.size, "bytes and type:", file.type)
       } else {
         // If no file, just pass along the original form data
-        newFormData.append("file", formData.get("file") as Blob, "colorized_panel.png")
+        console.error("File is not a File or Blob object")
+        throw new Error("Invalid file format")
       }
 
       // Add any other form data fields
@@ -106,8 +116,9 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: `API error: ${apiError instanceof Error ? apiError.message : "Unknown error"}`,
+          fallback: true,
         },
-        { status: 500 },
+        { status: 200 }, // Return 200 so client can handle fallback
       )
     }
   } catch (error) {
@@ -116,8 +127,9 @@ export async function POST(request: Request) {
       {
         error: "Failed to process manual animation request",
         details: error instanceof Error ? error.message : "Unknown error",
+        fallback: true,
       },
-      { status: 500 },
+      { status: 200 }, // Return 200 so client can handle fallback
     )
   }
 }

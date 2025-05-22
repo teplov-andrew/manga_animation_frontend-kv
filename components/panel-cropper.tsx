@@ -99,11 +99,14 @@ export function PanelCropper({ projectImage, onPanelsDetected, onPanelSelected, 
       const apiResponse = await fetch("/api/proxy-panel-api", {
         method: "POST",
         body: formData,
+        // Increase timeout from 15000ms to 120000ms (2 minutes)
+        signal: AbortSignal.timeout(120000), // 2 minute timeout
         // Add cache control headers to prevent caching issues
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
           Expires: "0",
+          "X-Preserve-Color": "true", // Add this header to signal that color should be preserved
         },
       })
 
@@ -208,10 +211,86 @@ export function PanelCropper({ projectImage, onPanelsDetected, onPanelSelected, 
       }
 
       // Set error message for display
-      setError(`Failed to process the image. ${err instanceof Error ? err.message : "Please try again later."}`)
-      setUseFallback(true)
+      setError(`Failed to process the image with external API. Using local processing to preserve colors.`)
 
-      // If the API call fails, fall back to mock panels for demonstration
+      // Try our local processing to preserve colors
+      processImageLocally()
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Add a new function to use our local panel detection when the API fails
+  // Add this function after the processImage function:
+
+  const processImageLocally = async () => {
+    if (!projectImage) return
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
+      console.log("Using local panel detection to preserve colors")
+
+      // Convert base64 image to a Blob
+      const response = await fetch(projectImage)
+      const blob = await response.blob()
+
+      // Create a FormData object and append the image
+      const formData = new FormData()
+      formData.append("file", blob, "manga_page.jpg")
+
+      // Use our local endpoint that preserves colors
+      const apiResponse = await fetch("/api/preserve-color-panels", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      })
+
+      if (!apiResponse.ok) {
+        throw new Error(`Local API error: ${apiResponse.status}`)
+      }
+
+      const data = await apiResponse.json()
+
+      if (data.panel_crops && Array.isArray(data.panel_crops)) {
+        console.log(`Found ${data.panel_crops.length} color-preserved panel crops in response`)
+
+        const panelData = data.panel_crops.map((base64Image: string, index: number) => {
+          return {
+            id: `panel-${index + 1}`,
+            imageData: base64Image,
+            selected: false,
+          }
+        })
+
+        // Cache the panels for this image
+        if (projectImage) {
+          panelCache.set(projectImage, panelData)
+        }
+
+        setPanels(panelData)
+        setPanelsDetected(true)
+
+        // Save all detected panels to the project
+        const allPanelImages = panelData.map((panel) => panel.imageData)
+        onPanelsDetected(allPanelImages)
+
+        // Reset retry count and fallback flag on success
+        setRetryCount(0)
+        setUseFallback(false)
+      } else {
+        throw new Error("No panels found in local API response")
+      }
+    } catch (err) {
+      console.error("Error in local panel detection:", err)
+      setError(`Failed to process the image locally: ${err instanceof Error ? err.message : "Unknown error"}`)
+
+      // Fall back to using the original image as a single panel
       if (projectImage) {
         const mockPanels = generateMockPanels(projectImage)
         setPanels(mockPanels)
@@ -231,7 +310,7 @@ export function PanelCropper({ projectImage, onPanelsDetected, onPanelSelected, 
 
   // Generate mock panels from the original image for fallback
   const generateMockPanels = (imageUrl: string): Panel[] => {
-    console.log("Generating mock panels as fallback")
+    console.log("Generating mock panels as fallback, preserving color information")
     // Create a set of mock panels
     const mockPanels: Panel[] = []
 
@@ -255,7 +334,7 @@ export function PanelCropper({ projectImage, onPanelsDetected, onPanelSelected, 
       })
     }
 
-    console.log(`Generated ${mockPanels.length} mock panels as fallback`)
+    console.log(`Generated ${mockPanels.length} mock panels as fallback, preserving original colors`)
     return mockPanels
   }
 
@@ -284,11 +363,19 @@ export function PanelCropper({ projectImage, onPanelsDetected, onPanelSelected, 
     }
   }
 
-  // Retry panel detection
+  // Update the retryPanelDetection function to try local processing if external API fails
+  // Find the retryPanelDetection function and modify it:
+
   const retryPanelDetection = () => {
-    setRetryCount(0)
-    setUseFallback(false)
-    processImage(true)
+    // If we've already tried the external API multiple times, use local processing
+    if (retryCount >= 2) {
+      setError("Using local panel detection to preserve colors")
+      processImageLocally()
+    } else {
+      setRetryCount(0)
+      setUseFallback(false)
+      processImage(true)
+    }
   }
 
   // Function to open image in new tab for debugging

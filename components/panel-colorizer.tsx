@@ -123,6 +123,10 @@ export function PanelColorizer({ panel, onColorized, onBack, onSkip }: PanelColo
 
           console.log("Received colorized image data:", imageData.substring(0, 50) + "...")
 
+          // Store the raw base64 data in a global window variable for debugging
+          // @ts-ignore
+          window.lastColorizedImage = data.colorized_image
+
           setColorizedPanel(imageData)
 
           // Reset retry count and fallback flag on success
@@ -188,6 +192,7 @@ export function PanelColorizer({ panel, onColorized, onBack, onSkip }: PanelColo
 
   const confirmColorization = () => {
     if (colorizedPanel) {
+      console.log("Confirming colorization, passing to animator:", colorizedPanel.substring(0, 50) + "...")
       onColorized(colorizedPanel)
     }
   }

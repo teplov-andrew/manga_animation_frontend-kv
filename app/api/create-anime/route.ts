@@ -4,20 +4,34 @@ export const maxDuration = 600 // 10 minutes
 
 export async function POST(request: Request) {
   try {
-    // Get the videos data from the request
+    // Get the videos data and music from the request
     const data = await request.json()
 
     if (!data.videos || !Array.isArray(data.videos) || data.videos.length === 0) {
       return NextResponse.json({ error: "No video URLs provided" }, { status: 400 })
     }
 
-    console.log(`Creating anime with ${data.videos.length} videos`)
+    console.log(`Creating anime with ${data.videos.length} videos${data.music ? " and music" : ""}`)
 
     // Create a FormData object with the JSON data
     const formData = new FormData()
 
+    // Log the music URL if provided
+    if (data.music) {
+      console.log("Including music track in anime creation (S3 URL):", data.music)
+    }
+
     // Convert the JSON data to a file
-    const jsonBlob = new Blob([JSON.stringify({ videos: data.videos })], { type: "application/json" })
+    const jsonBlob = new Blob(
+      [
+        JSON.stringify({
+          videos: data.videos,
+          music: data.music || null, // This ensures the S3 URL is included
+          settings: data.settings || {},
+        }),
+      ],
+      { type: "application/json" },
+    )
     formData.append("file", jsonBlob, "videos.json")
 
     // Create a controller for timeout
@@ -26,7 +40,7 @@ export async function POST(request: Request) {
 
     try {
       // Forward the request to the external API
-      const response = await fetch("https://152f-213-159-64-202.ngrok-free.app/create_anime/", {
+      const response = await fetch("https://dbdb-212-34-143-63.ngrok-free.app/create_anime/", {
         method: "POST",
         body: formData,
         signal: controller.signal,

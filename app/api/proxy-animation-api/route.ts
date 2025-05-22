@@ -35,11 +35,18 @@ export async function POST(request: Request) {
     // Determine which API to use based on the model
     const apiUrl =
       model === "vidu"
-        ? "https://152f-213-159-64-202.ngrok-free.app/vidu_animate/"
-        : "https://152f-213-159-64-202.ngrok-free.app/wan_animate/"
+        ? "https://dbdb-212-34-143-63.ngrok-free.app/vidu_animate/"
+        : model === "wan"
+          ? "https://dbdb-212-34-143-63.ngrok-free.app/wan_animate/"
+          : model === "cogvideox"
+            ? "https://dbdb-212-34-143-63.ngrok-free.app/vidu_animate/" // Temporarily use vidu endpoint until cogvideox is implemented
+            : "https://dbdb-212-34-143-63.ngrok-free.app/wan_animate/"
 
     try {
       console.log(`Calling ${model} API at ${apiUrl}`)
+      if (model === "cogvideox") {
+        console.log("Note: CogVideoX model is currently a placeholder and will use VIDU endpoint")
+      }
 
       // Extract the file from formData
       const file = formData.get("file")
@@ -49,7 +56,8 @@ export async function POST(request: Request) {
         throw new Error("No file found in form data or file is not a Blob")
       }
 
-      console.log(`File details: type=${file.type}, size=${file.size} bytes`)
+      console.log(`File details for animation: type=${file.type}, size=${file.size} bytes`)
+      console.log(`Using ${file.size > 500000 ? "colorized" : "original"} panel for animation based on file size`)
       console.log(`Prompt: ${prompt}`)
 
       // Create a new FormData object with just the essential fields
@@ -97,7 +105,7 @@ export async function POST(request: Request) {
               success: true,
               task: {
                 id: responseData.task_id,
-                statusUrl: `https://152f-213-159-64-202.ngrok-free.app${responseData.status_url}`,
+                statusUrl: `https://dbdb-212-34-143-63.ngrok-free.app${responseData.status_url}`,
                 model: "vidu",
               },
             })

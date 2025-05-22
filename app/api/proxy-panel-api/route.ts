@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
     try {
       // Forward the request to the external API - using the correct endpoint
-      const response = await fetch("https://152f-213-159-64-202.ngrok-free.app/crop_panels/", {
+      const response = await fetch("https://dbdb-212-34-143-63.ngrok-free.app/crop_panels/", {
         method: "POST",
         body: formData,
         // Increase timeout from 15000ms to 120000ms (2 minutes)
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
           Expires: "0",
+          "X-Preserve-Color": "true", // Add this header to signal that color should be preserved
         },
       })
 
@@ -33,12 +34,25 @@ export async function POST(request: Request) {
       const data = await response.json()
       console.log("Successfully received response from panel API")
 
+      // Add a log to check the response format
+      console.log("Panel API response received, checking for color preservation")
+
       // Check if the response has panel_crops array
       if (data.panel_crops && Array.isArray(data.panel_crops)) {
-        console.log(`Found ${data.panel_crops.length} panel crops in response`)
+        console.log(`Found ${data.panel_crops.length} panel crops in response, ensuring color is preserved`)
+
+        // Ensure the panel_crops are properly formatted with color information
+        const panelCrops = data.panel_crops.map((crop: string) => {
+          // Make sure the base64 string has the proper prefix if it doesn't already
+          if (typeof crop === "string") {
+            return crop.startsWith("data:image/") ? crop : `data:image/png;base64,${crop}`
+          }
+          return crop
+        })
+
         return NextResponse.json({
           success: true,
-          panel_crops: data.panel_crops,
+          panel_crops: panelCrops,
         })
       } else {
         console.log("No panel_crops found in response, checking for other formats")

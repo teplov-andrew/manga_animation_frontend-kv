@@ -11,17 +11,16 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Loader2, Download, ArrowUp, ArrowDown, X, Film, Settings } from "lucide-react"
+import { Loader2, Download, ArrowUp, ArrowDown, X, Film, Music } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { type MusicTrack, MusicLibrary } from "@/components/music-library"
 
 interface Animation {
   id: string
@@ -66,6 +65,7 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
   const [aspectRatio, setAspectRatio] = useState("9:16")
   const [addCredits, setAddCredits] = useState(true)
   const [backgroundColor, setBackgroundColor] = useState("#FFFFFF") // Default white background
+  const [selectedMusicTrack, setSelectedMusicTrack] = useState<MusicTrack | null>(null)
 
   // Update ordered animations when selected animations change
   useEffect(() => {
@@ -348,6 +348,14 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
         .map((animation) => animation.settings.videoUrl)
         .filter((url): url is string => !!url)
 
+      // Include music track if selected
+      const musicTrack = addBackgroundMusic && selectedMusicTrack ? selectedMusicTrack.url : null
+
+      // Log the music selection
+      if (musicTrack) {
+        console.log("Including music track:", selectedMusicTrack?.name, selectedMusicTrack?.url)
+      }
+
       if (videoUrls.length === 0) {
         throw new Error("No valid video URLs found in the selected animations")
       }
@@ -367,7 +375,14 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ videos: videoUrls }),
+          body: JSON.stringify({
+            videos: videoUrls,
+            music: musicTrack, // This is the S3 URL from the selected music track
+            settings: {
+              title: animeTitle,
+              backgroundColor,
+            },
+          }),
         })
 
         clearInterval(progressInterval)
@@ -478,14 +493,14 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="clips" className="flex items-center">
               <Film className="mr-2 h-4 w-4" />
               Clips ({orderedAnimations.length})
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+              <Music className="mr-2 h-4 w-4" />
+              Music & Settings
             </TabsTrigger>
           </TabsList>
 
@@ -662,101 +677,11 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
                         placeholder="Enter a title for your anime"
                       />
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="clip-duration">Clip Duration (seconds)</Label>
-                        <div className="flex items-center gap-2">
-                          <Slider
-                            id="clip-duration"
-                            value={[clipDuration]}
-                            min={1}
-                            max={10}
-                            step={0.5}
-                            onValueChange={(value) => setClipDuration(value[0])}
-                          />
-                          <span className="w-8 text-sm">{clipDuration}s</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="aspect-ratio">Aspect Ratio</Label>
-                        <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                          <SelectTrigger id="aspect-ratio">
-                            <SelectValue placeholder="Select aspect ratio" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
-                            <SelectItem value="4:3">4:3 (Standard)</SelectItem>
-                            <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                            <SelectItem value="9:16">9:16 (Vertical/Mobile)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Background Color */}
-                    <div className="space-y-2">
-                      <Label htmlFor="background-color">Background Color</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id="background-color"
-                          type="color"
-                          value={backgroundColor}
-                          onChange={(e) => setBackgroundColor(e.target.value)}
-                          className="w-12 h-10 p-1"
-                        />
-                        <Input
-                          value={backgroundColor}
-                          onChange={(e) => setBackgroundColor(e.target.value)}
-                          className="flex-1"
-                          placeholder="#FFFFFF"
-                        />
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Transition Settings */}
+                  {/* Music Settings - Make this the primary focus */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Transition Settings</h3>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="transition-type">Transition Type</Label>
-                        <Select value={transitionType} onValueChange={setTransitionType}>
-                          <SelectTrigger id="transition-type">
-                            <SelectValue placeholder="Select transition" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fade">Fade</SelectItem>
-                            <SelectItem value="slide">Slide</SelectItem>
-                            <SelectItem value="zoom">Zoom</SelectItem>
-                            <SelectItem value="dissolve">Dissolve</SelectItem>
-                            <SelectItem value="wipe">Wipe</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="transition-duration">Transition Duration (seconds)</Label>
-                        <div className="flex items-center gap-2">
-                          <Slider
-                            id="transition-duration"
-                            value={[transitionDuration]}
-                            min={0.1}
-                            max={2}
-                            step={0.1}
-                            onValueChange={(value) => setTransitionDuration(value[0])}
-                          />
-                          <span className="w-8 text-sm">{transitionDuration}s</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Audio Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Audio Settings</h3>
+                    <h3 className="text-sm font-medium">Music Settings</h3>
 
                     <div className="flex items-center space-x-2">
                       <Switch id="add-music" checked={addBackgroundMusic} onCheckedChange={setAddBackgroundMusic} />
@@ -764,62 +689,30 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
                     </div>
 
                     {addBackgroundMusic && (
-                      <div className="space-y-2">
-                        <Label htmlFor="music-style">Music Style</Label>
-                        <Select value={musicStyle} onValueChange={setMusicStyle}>
-                          <SelectTrigger id="music-style">
-                            <SelectValue placeholder="Select music style" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="anime">Anime</SelectItem>
-                            <SelectItem value="epic">Epic</SelectItem>
-                            <SelectItem value="relaxing">Relaxing</SelectItem>
-                            <SelectItem value="action">Action</SelectItem>
-                            <SelectItem value="dramatic">Dramatic</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-4 border rounded-md p-4 bg-card/50">
+                        <h4 className="text-sm font-medium mb-2">Select Music Track</h4>
+                        <p className="text-xs text-muted-foreground mb-4">Choose from your Yandex Cloud music tracks</p>
+
+                        <MusicLibrary onSelectTrack={setSelectedMusicTrack} selectedTrackId={selectedMusicTrack?.id} />
+
+                        {selectedMusicTrack && (
+                          <div className="mt-4 p-3 bg-primary/10 rounded-md flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium">{selectedMusicTrack.name}</p>
+                              <p className="text-xs text-muted-foreground">{selectedMusicTrack.artist}</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedMusicTrack(null)}
+                              className="h-8 px-2"
+                            >
+                              Change
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
-
-                  {/* Output Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Output Settings</h3>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="output-format">Output Format</Label>
-                        <Select value={outputFormat} onValueChange={setOutputFormat}>
-                          <SelectTrigger id="output-format">
-                            <SelectValue placeholder="Select format" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mp4">MP4</SelectItem>
-                            <SelectItem value="webm">WebM</SelectItem>
-                            <SelectItem value="gif">GIF</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="output-quality">Quality</Label>
-                        <Select value={outputQuality} onValueChange={setOutputQuality}>
-                          <SelectTrigger id="output-quality">
-                            <SelectValue placeholder="Select quality" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Low (480p)</SelectItem>
-                            <SelectItem value="medium">Medium (720p)</SelectItem>
-                            <SelectItem value="high">High (1080p)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Switch id="add-credits" checked={addCredits} onCheckedChange={setAddCredits} />
-                      <Label htmlFor="add-credits">Add Credits</Label>
-                    </div>
                   </div>
                 </div>
               </ScrollArea>

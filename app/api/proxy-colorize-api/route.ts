@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minute timeout
 
         // Forward the request to the external API
-        const response = await fetch("https://152f-213-159-64-202.ngrok-free.app/colorize/", {
+        const response = await fetch("https://dbdb-212-34-143-63.ngrok-free.app/colorize/", {
           method: "POST",
           body: formData,
           signal: controller.signal,

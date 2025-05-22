@@ -123,6 +123,10 @@ export function ProjectContent({
   }
 
   const handlePanelSelected = (panel: string) => {
+    // Log the panel data to verify color information is preserved
+    console.log("Selected panel data (first 100 chars):", panel.substring(0, 100))
+    console.log("Panel appears to be colorized:", !panel.includes("data:image/jpeg") || panel.length > 100000)
+
     // Save the selected panel and explicitly set the step to colorize
     setSelectedPanel(panel)
     setShowPanelCropper(false)
@@ -145,7 +149,7 @@ export function ProjectContent({
     }
   }
 
-  // Update the handlePanelColorized function to ensure we're properly handling the colorized panel
+  // Update the handlePanelColorized function to ensure we're properly saving the colorized panel
   const handlePanelColorized = (colorizedPanel: string) => {
     // Save the colorized panel and move to animation step
     setColorizedPanel(colorizedPanel)
@@ -166,6 +170,9 @@ export function ProjectContent({
     // Skip colorization and use the original panel for animation
     onStepChange("animate")
     setIsNavigatingBackward(false)
+
+    // Log that we're using the original panel (which may already be colorized)
+    console.log("Skipping colorization, using original panel which may already be colorized")
 
     // Use the selected panel directly for animation
     onUpdateProject({

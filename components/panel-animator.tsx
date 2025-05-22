@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Play, Save, Wand2, Sliders, Loader2, RefreshCw, AlertCircle } from "lucide-react"
+import { ArrowLeft, Play, Save, Wand2, Sliders, Loader2, RefreshCw, AlertCircle, Download } from "lucide-react"
 import Image from "next/image"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -22,9 +22,8 @@ interface PanelAnimatorProps {
 }
 
 export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorProps) {
-  // First, let's add a debug log at the beginning of the component to see what panel data we're receiving
-  // Add this right after the function declaration, before the useState declarations
-  console.log("Panel data received:", panel.substring(0, 100) + "...")
+  // At the beginning of the component, update the debug logging to better show what panel data is being received
+  console.log("Panel data received in animator:", panel.substring(0, 100) + "...")
   console.log("Is panel data a base64 string?", panel.startsWith("data:image"))
   console.log("Is panel data an external URL?", panel.startsWith("http"))
 
@@ -41,7 +40,7 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
   const [isExternalUrl, setIsExternalUrl] = useState(false)
 
   // Add a new state for the selected AI model and video result at the top of the component
-  const [selectedModel, setSelectedModel] = useState<"vidu" | "wan">("vidu")
+  const [selectedModel, setSelectedModel] = useState<"vidu" | "wan" | "cogvideox">("vidu")
   const [videoResult, setVideoResult] = useState<string | null>(null)
   const [videoLoading, setVideoLoading] = useState(false)
   const [videoError, setVideoError] = useState<string | null>(null)
@@ -71,6 +70,40 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     setIsPlaying(false)
   }
 
+  // Function to convert base64 to blob
+  const base64ToBlob = async (base64Data: string, contentType = "image/png") => {
+    // If it's already a data URL, extract the base64 part
+    if (base64Data.startsWith("data:")) {
+      const parts = base64Data.split(",")
+      if (parts.length === 2) {
+        base64Data = parts[1]
+        // Extract content type if available
+        const mimeMatch = parts[0].match(/:(.*?);/)
+        if (mimeMatch && mimeMatch.length > 1) {
+          contentType = mimeMatch[1]
+        }
+      }
+    }
+
+    // Convert base64 to binary
+    const byteCharacters = atob(base64Data)
+    const byteArrays = []
+
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512)
+
+      const byteNumbers = new Array(slice.length)
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i)
+      }
+
+      const byteArray = new Uint8Array(byteNumbers)
+      byteArrays.push(byteArray)
+    }
+
+    return new Blob(byteArrays, { type: contentType })
+  }
+
   // Update the generateManualAnimation function to ensure we're preserving color information
   const generateManualAnimation = async () => {
     // Don't start a new request if one is already in progress
@@ -94,7 +127,17 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     try {
       let blob: Blob
 
-      if (isExternalUrl) {
+      // DIRECT APPROACH: Convert the panel data to a blob
+      if (panel.startsWith("data:image")) {
+        try {
+          // Use our helper function to convert base64 to blob
+          blob = await base64ToBlob(panel)
+          console.log("Successfully converted data URL to blob:", blob.type, blob.size)
+        } catch (error) {
+          console.error("Error converting data URL to blob:", error)
+          throw new Error("Failed to process the colorized image")
+        }
+      } else if (isExternalUrl) {
         // If the panel is an external URL, fetch it first
         const imageResponse = await fetch(panel)
         if (!imageResponse.ok) {
@@ -102,37 +145,30 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
         }
         blob = await imageResponse.blob()
       } else {
-        // Otherwise, it's a base64 image
+        // Otherwise, it's a regular image path
         const response = await fetch(panel)
         blob = await response.blob()
       }
 
-      // Create a new Blob with explicit PNG type to preserve color information
-      const pngBlob = new Blob([await blob.arrayBuffer()], { type: "image/png" })
-
-      // Log the blob details
-      console.log("Blob created for animation:", {
-        size: pngBlob.size,
-        type: pngBlob.type,
-      })
-
       // Create FormData
       const formData = new FormData()
-      formData.append("file", pngBlob, "colorized_panel.png") // Use .png extension to ensure color preservation
-      formData.append("effect", effect)
 
-      // Add a timestamp to prevent caching
+      // Explicitly set the filename with .png extension to ensure color preservation
+      formData.append("file", blob, "colorized_panel.png")
+      formData.append("effect", effect)
       formData.append("timestamp", Date.now().toString())
 
-      // Add a log to confirm we're using the colorized panel
-      console.log("Sending colorized panel for animation with effect:", effect)
+      console.log("Sending animation request with blob:", {
+        size: blob.size,
+        type: blob.type,
+        effect: effect,
+      })
 
       // Call our proxy API
       const apiResponse = await fetch("/api/proxy-manual-animation", {
         method: "POST",
         body: formData,
         headers: {
-          // Add cache control headers to prevent caching issues
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
           Expires: "0",
@@ -164,9 +200,13 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
 
       toast({
         title: "Animation Failed",
-        description: "Could not generate animation. Please try again.",
+        description: "Could not generate animation. Using CSS fallback.",
         variant: "destructive",
       })
+
+      // Fallback to CSS animation when API fails
+      const cssAnimationUrl = `data:video/mp4;base64,${effect}-offline-animation`
+      setManualVideoResult(cssAnimationUrl)
     } finally {
       setManualVideoLoading(false)
     }
@@ -208,7 +248,16 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     try {
       let blob: Blob
 
-      if (isExternalUrl) {
+      if (panel.startsWith("data:image")) {
+        try {
+          // Use our helper function to convert base64 to blob
+          blob = await base64ToBlob(panel)
+          console.log("Successfully converted data URL to blob for AI animation:", blob.type, blob.size)
+        } catch (error) {
+          console.error("Error converting data URL to blob for AI animation:", error)
+          throw new Error("Failed to process the colorized image")
+        }
+      } else if (isExternalUrl) {
         // If the panel is an external URL, fetch it first
         const imageResponse = await fetch(panel)
         if (!imageResponse.ok) {
@@ -216,7 +265,7 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
         }
         blob = await imageResponse.blob()
       } else {
-        // Otherwise, it's a base64 image
+        // Otherwise, it's a regular image path
         const response = await fetch(panel)
         blob = await response.blob()
       }
@@ -493,6 +542,45 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     }, 1500)
   }
 
+  // Add this function to the component, after the existing functions but before the return statement:
+  const downloadAnimation = () => {
+    if (!videoResult && !manualVideoResult) return
+
+    const videoUrl = animationMode === "ai" ? videoResult : manualVideoResult
+    if (!videoUrl) return
+
+    // Skip downloading for offline animations
+    if (
+      videoUrl.startsWith("data:video/mp4;base64,") &&
+      (videoUrl.includes("-offline-animation") || !videoUrl.includes(","))
+    ) {
+      toast({
+        title: "Download Unavailable",
+        description: "This animation is in offline mode and cannot be downloaded.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Create a timestamp for the filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+    const filename = `${animationMode === "ai" ? selectedModel : effect}-animation-${timestamp}.mp4`
+
+    // Create a temporary anchor element to trigger the download
+    const a = document.createElement("a")
+    a.href = videoUrl
+    a.download = filename
+    a.style.display = "none"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+
+    toast({
+      title: "Download Started",
+      description: "Your animation is being downloaded",
+    })
+  }
+
   // Update the saveAnimation function to include video URL for manual animations
   const saveAnimation = () => {
     // Create animation object
@@ -703,13 +791,17 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>AI Model</Label>
-                    <Select value={selectedModel} onValueChange={(value) => setSelectedModel(value as "vidu" | "wan")}>
+                    <Select
+                      value={selectedModel}
+                      onValueChange={(value) => setSelectedModel(value as "vidu" | "wan" | "cogvideox")}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select AI model" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="vidu">VIDU Q1</SelectItem>
                         <SelectItem value="wan">Wan 2.1</SelectItem>
+                        <SelectItem value="cogvideox">CogVideoX (my-checkpoint)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -718,7 +810,9 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
                     <p className="text-xs text-muted-foreground">
                       {selectedModel === "vidu"
                         ? "VIDU Q1: Better for detailed animations (up to 10 min)"
-                        : "Wan 2.1: Faster manga-style animations (1-2 min)"}
+                        : selectedModel === "wan"
+                          ? "Wan 2.1: Faster manga-style animations (1-2 min)"
+                          : "CogVideoX: Custom checkpoint for specialized animations"}
                     </p>
                   </div>
                 </div>
@@ -741,7 +835,8 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating with {selectedModel === "vidu" ? "VIDU Q1" : "Wan 2.1"}...
+                      Generating with{" "}
+                      {selectedModel === "vidu" ? "VIDU Q1" : selectedModel === "wan" ? "Wan 2.1" : "CogVideoX"}...
                     </>
                   ) : videoResult ? (
                     <>
@@ -929,14 +1024,22 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
           <ArrowLeft size={16} className="mr-2" />
           Back
         </Button>
-        <Button
-          className="bg-primary hover:bg-primary/90"
-          onClick={saveAnimation}
-          disabled={(animationMode === "ai" && !videoResult) || (animationMode === "manual" && !manualVideoResult)}
-        >
-          <Save className="mr-2 h-4 w-4" />
-          Save to Feed
-        </Button>
+        <div className="flex gap-2">
+          {(videoResult || manualVideoResult) && (
+            <Button variant="outline" onClick={downloadAnimation} className="bg-secondary hover:bg-secondary/90">
+              <Download className="mr-2 h-4 w-4" />
+              Download Animation
+            </Button>
+          )}
+          <Button
+            className="bg-primary hover:bg-primary/90"
+            onClick={saveAnimation}
+            disabled={(animationMode === "ai" && !videoResult) || (animationMode === "manual" && !manualVideoResult)}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Save to Feed
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   )

@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     // Get the request body
     const body = await request.json()
-    const { videoUrls, mergeSettings } = body
+    const { videoUrls, mergeSettings, musicUrl } = body
 
     if (!videoUrls || !Array.isArray(videoUrls) || videoUrls.length === 0) {
       return NextResponse.json({ error: "No video URLs provided" }, { status: 400 })
@@ -14,12 +14,24 @@ export async function POST(request: Request) {
 
     console.log("Merging videos with settings:", mergeSettings)
     console.log("Video URLs:", videoUrls)
+    if (musicUrl) {
+      console.log("Music URL:", musicUrl)
+    }
 
     // Create a FormData object with the JSON data
     const formData = new FormData()
 
     // Convert the JSON data to a file
-    const jsonBlob = new Blob([JSON.stringify({ videos: videoUrls })], { type: "application/json" })
+    const jsonBlob = new Blob(
+      [
+        JSON.stringify({
+          videos: videoUrls,
+          music: musicUrl || null,
+          settings: mergeSettings || {},
+        }),
+      ],
+      { type: "application/json" },
+    )
     formData.append("file", jsonBlob, "videos.json")
 
     // Create a controller for timeout
