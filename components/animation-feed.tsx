@@ -167,10 +167,11 @@ export function AnimationFeed({ animations, onDeleteAnimation }: AnimationFeedPr
     a.click()
     document.body.removeChild(a)
 
-    toast({
-      title: "Download Started",
-      description: "Your animation is being downloaded",
-    })
+    // Remove toast notification
+    // toast({
+    //   title: "Download Started",
+    //   description: "Your animation is being downloaded",
+    // })
   }
 
   const renderAnimationContent = (animation: Animation) => {

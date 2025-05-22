@@ -133,10 +133,11 @@ export function PanelColorizer({ panel, onColorized, onBack, onSkip }: PanelColo
           setRetryCount(0)
           setUseFallback(false)
 
-          toast({
-            title: "Colorization Complete",
-            description: "Panel has been successfully colorized",
-          })
+          // Remove toast notification
+          // toast({
+          //   title: "Colorization Complete",
+          //   description: "Panel has been successfully colorized",
+          // })
         } else {
           throw new Error("No colorized image returned from API")
         }

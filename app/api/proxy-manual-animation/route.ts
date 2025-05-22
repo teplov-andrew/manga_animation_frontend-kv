@@ -36,12 +36,12 @@ export async function POST(request: Request) {
     }
 
     // Determine which API to use based on the effect - THIS IS THE KEY FIX
-    let apiUrl = "https://dbdb-212-34-143-63.ngrok-free.app/manual_zoom/"
+    let apiUrl = "https://c307-212-34-142-81.ngrok-free.app/manual_zoom/"
 
     if (effect === "reveal") {
-      apiUrl = "https://dbdb-212-34-143-63.ngrok-free.app/manual_reveal/"
+      apiUrl = "https://c307-212-34-142-81.ngrok-free.app/manual_reveal/"
     } else if (effect === "shake") {
-      apiUrl = "https://dbdb-212-34-143-63.ngrok-free.app/manual_shake/"
+      apiUrl = "https://c307-212-34-142-81.ngrok-free.app/manual_shake/"
     }
 
     console.log(`Proxying manual animation request to ${apiUrl} for effect: ${effect}`)

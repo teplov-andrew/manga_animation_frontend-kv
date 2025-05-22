@@ -406,10 +406,11 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
             file_name: data.file_name || "anime-video.mp4",
           })
 
-          toast({
-            title: "Anime Created Successfully",
-            description: `Created "${animeTitle}" with ${orderedAnimations.length} clips`,
-          })
+          // Remove toast notification
+          // toast({
+          //   title: "Anime Created Successfully",
+          //   description: `Created "${animeTitle}" with ${orderedAnimations.length} clips`,
+          // })
         } else {
           throw new Error("No video URL in response")
         }
@@ -448,10 +449,11 @@ export function VideoMerger({ open, onOpenChange, selectedAnimations, onClearSel
     a.click()
     document.body.removeChild(a)
 
-    toast({
-      title: "Download Started",
-      description: "Your anime video is being downloaded",
-    })
+    // Remove toast notification
+    // toast({
+    //   title: "Download Started",
+    //   description: "Your anime video is being downloaded",
+    // })
   }
 
   // Reset the merger state

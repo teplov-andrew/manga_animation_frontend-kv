@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     try {
       // Forward the request to the external API
-      const response = await fetch("https://dbdb-212-34-143-63.ngrok-free.app/create_anime/", {
+      const response = await fetch("https://c307-212-34-142-81.ngrok-free.app/create_anime/", {
         method: "POST",
         body: formData,
         signal: controller.signal,

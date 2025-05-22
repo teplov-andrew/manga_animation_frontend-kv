@@ -35,12 +35,12 @@ export async function POST(request: Request) {
     // Determine which API to use based on the model
     const apiUrl =
       model === "vidu"
-        ? "https://dbdb-212-34-143-63.ngrok-free.app/vidu_animate/"
+        ? "https://c307-212-34-142-81.ngrok-free.app/vidu_animate/"
         : model === "wan"
-          ? "https://dbdb-212-34-143-63.ngrok-free.app/wan_animate/"
+          ? "https://c307-212-34-142-81.ngrok-free.app/wan_animate/"
           : model === "cogvideox"
-            ? "https://dbdb-212-34-143-63.ngrok-free.app/vidu_animate/" // Temporarily use vidu endpoint until cogvideox is implemented
-            : "https://dbdb-212-34-143-63.ngrok-free.app/wan_animate/"
+            ? "https://c307-212-34-142-81.ngrok-free.app/vidu_animate/" // Temporarily use vidu endpoint until cogvideox is implemented
+            : "https://c307-212-34-142-81.ngrok-free.app/wan_animate/"
 
     try {
       console.log(`Calling ${model} API at ${apiUrl}`)
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
               success: true,
               task: {
                 id: responseData.task_id,
-                statusUrl: `https://dbdb-212-34-143-63.ngrok-free.app${responseData.status_url}`,
+                statusUrl: `https://c307-212-34-142-81.ngrok-free.app${responseData.status_url}`,
                 model: "vidu",
               },
             })

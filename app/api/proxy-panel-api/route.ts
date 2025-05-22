@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
     try {
       // Forward the request to the external API - using the correct endpoint
-      const response = await fetch("https://dbdb-212-34-143-63.ngrok-free.app/crop_panels/", {
+      const response = await fetch("https://c307-212-34-142-81.ngrok-free.app/crop_panels/", {
         method: "POST",
         body: formData,
         // Increase timeout from 15000ms to 120000ms (2 minutes)

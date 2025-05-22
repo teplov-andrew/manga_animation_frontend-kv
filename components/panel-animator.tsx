@@ -187,10 +187,11 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
 
       if (data.file_url) {
         setManualVideoResult(data.file_url)
-        toast({
-          title: "Animation Generated",
-          description: `Successfully created ${effect} animation`,
-        })
+        // Remove toast notification
+        // toast({
+        //   title: "Animation Generated",
+        //   description: `Successfully created ${effect} animation`,
+        // })
       } else {
         throw new Error("No video URL in response")
       }
@@ -236,11 +237,12 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
 
     if (selectedModel === "vidu") {
       timeoutWarningTimer = setTimeout(() => {
-        toast({
-          title: "Processing In Progress",
-          description:
-            "VIDU Q1 model is working on your animation. This can take up to 10 minutes for high-quality results. Please be patient.",
-        })
+        // Remove toast notification
+        // toast({
+        //   title: "Processing In Progress",
+        //   description:
+        //     "VIDU Q1 model is working on your animation. This can take up to 10 minutes for high-quality results. Please be patient.",
+        // })
         timeoutWarningShown = true
       }, 30000) // Show warning after 30 seconds
     }
@@ -324,10 +326,11 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
         setVideoResult(`data:video/mp4;base64,${animationType}-offline-animation`)
         setAiGenerated(true)
 
-        toast({
-          title: "Using Fallback Animation",
-          description: "The animation API is currently unavailable. Using a fallback animation instead.",
-        })
+        // Remove toast notification
+        // toast({
+        //   title: "Using Fallback Animation",
+        //   description: "The animation API is currently unavailable. Using a fallback animation instead.",
+        // })
 
         // Clear the timeout warning timer if it exists
         if (timeoutWarningTimer) {
@@ -399,10 +402,11 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
                 setVideoResult(videoUrl)
                 setAiGenerated(true)
 
-                toast({
-                  title: "Animation Generated",
-                  description: `Successfully created animation using VIDU Q1 model`,
-                })
+                // Remove toast notification
+                // toast({
+                //   title: "Animation Generated",
+                //   description: `Successfully created animation using VIDU Q1 model`,
+                // })
               } else {
                 throw new Error("No video URL found in completed task result")
               }
@@ -496,10 +500,11 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     setVideoResult("https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
     setAiGenerated(true)
     setProgressPercentage(100)
-    toast({
-      title: "Using Demo Animation",
-      description: "Showing a demo animation since the service is unavailable.",
-    })
+    // Remove toast notification
+    // toast({
+    //   title: "Using Demo Animation",
+    //   description: "Showing a demo animation since the service is unavailable.",
+    // })
   }
 
   // Add a new function for creating CSS-based animations without requiring the external API
@@ -575,10 +580,11 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     a.click()
     document.body.removeChild(a)
 
-    toast({
-      title: "Download Started",
-      description: "Your animation is being downloaded",
-    })
+    // Remove toast notification
+    // toast({
+    //   title: "Download Started",
+    //   description: "Your animation is being downloaded",
+    // })
   }
 
   // Update the saveAnimation function to include video URL for manual animations
@@ -604,11 +610,11 @@ export function PanelAnimator({ panel, onBack, onSaveAnimation }: PanelAnimatorP
     // Save animation
     onSaveAnimation(animation)
 
-    // Show success toast
-    toast({
-      title: "Animation Saved",
-      description: "Your animation has been added to the feed",
-    })
+    // Remove toast notification
+    // toast({
+    //   title: "Animation Saved",
+    //   description: "Your animation has been added to the feed",
+    // })
   }
 
   const getAnimationClass = () => {
