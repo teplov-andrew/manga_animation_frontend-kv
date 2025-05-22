@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         : model === "wan"
           ? "https://c307-212-34-142-81.ngrok-free.app/wan_animate/"
           : model === "cogvideox"
-            ? "https://c307-212-34-142-81.ngrok-free.app/vidu_animate/" // Temporarily use vidu endpoint until cogvideox is implemented
+            ? "https://c307-212-34-142-81.ngrok-free.app/cogvideox_animate/" // Temporarily use vidu endpoint until cogvideox is implemented
             : "https://c307-212-34-142-81.ngrok-free.app/wan_animate/"
 
     try {
